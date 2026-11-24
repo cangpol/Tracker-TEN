@@ -58,7 +58,7 @@ Aturan di satu modul: [server/akses.js](server/akses.js). Server yang memutuskan
 | PIC Divisi | Kontrak divisinya sendiri (sebelum Menunggu TTD), dokumen, tanpa nilai |
 | Finance | Baca, lihat nilai, tahap Finance, dokumen final/adendum kontrak bernilai |
 | Direksi | Baca, lihat nilai, tahap Direksi, putuskan kontrak |
-| Viewer / Auditor | Baca saja, tanpa nilai dan dokumen |
+| Auditor (Viewer) | Baca saja, tanpa nilai dan dokumen |
 
 Aturan penting: penyetuju tidak boleh sama dengan pembuat kontrak; peran Admin Sistem, Legal, Finance, Direksi butuh persetujuan Admin Sistem lain; kolom nilai disaring di server; akun nonaktif langsung kehilangan sesi.
 

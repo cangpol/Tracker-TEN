@@ -110,7 +110,7 @@ a.kartu:hover { border-color: var(--cyan); transform: translateY(-2px); }
 .btn:active { transform: translateY(1px); }
 .btn.utama { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .btn.utama:hover { background: var(--primary-hover); }
-.btn.kecil { min-height: 36px; padding: 0 12px; font-size: 0.875rem; }
+.btn.kecil { min-height: 36px; padding: 0 12px; font-size: 0.875rem; white-space: nowrap; }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .tabel-bungkus { overflow-x: auto; position: relative; } /* position: relative agar label .sr (absolute) ikut terpotong dan tidak melebarkan halaman di ponsel */
