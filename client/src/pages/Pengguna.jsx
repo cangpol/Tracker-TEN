@@ -125,9 +125,9 @@ export default function Pengguna() {
             </select>
           </label>
           {perluDivisi && (
-            <label>Divisi<small>PIC hanya melihat kontrak divisinya.</small>
+            <label>Unit<small>PIC hanya melihat dan mengajukan kontrak unitnya.</small>
               <select value={f.divisi_id} onChange={set('divisi_id')} required>
-                <option value="">Pilih divisi…</option>
+                <option value="">Pilih unit…</option>
                 {master.data?.divisi.map((x) => <option key={x.id} value={x.id}>{x.nama}</option>)}
               </select>
             </label>

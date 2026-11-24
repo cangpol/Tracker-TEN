@@ -56,9 +56,9 @@ export default function Form({ id }) {
               <input list="daftar-cp" value={v.counterparty_nama} onChange={set('counterparty_nama')} required maxLength={200} />
               <datalist id="daftar-cp">{master.data.counterparty.map((n) => <option key={n} value={n} />)}</datalist>
             </label>
-            <label>Divisi *
+            <label>Kategori unit *<small>{kunciDivisi ? 'Pengajuan otomatis masuk ke unit akun Anda.' : 'Pilih unit pemilik kontrak ini (Tgn & Tlc, Upitra, atau Cristore).'}</small>
               <select value={v.divisi_id} onChange={set("divisi_id")} required disabled={kunciDivisi}>
-                <option value="">Pilih divisi…</option>
+                <option value="">Pilih unit…</option>
                 {master.data.divisi.map((d) => <option key={d.id} value={d.id}>{d.nama}</option>)}
               </select>
             </label>

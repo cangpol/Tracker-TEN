@@ -10,9 +10,9 @@ export const AKUN = [
   ['Legal Kedua Demo', 'legal2@demo.test', 'legal', null, 'Legal', 'Rekan Legal untuk mencoba aturan empat mata (penyetuju tidak boleh pembuat kontrak).'],
   ['HQ / TEN Demo', 'direksi@demo.test', 'direksi', null, 'HQ / TEN', 'Kantor pusat: memantau semua unit, melihat nilai, menyetujui tahap Direksi, memutuskan kontrak.'],
   ['Finance Demo', 'finance@demo.test', 'finance', null, 'Finance', 'Tinjau kontrak bernilai, lihat nilai kontrak, setujui tahap Finance.'],
-  ['PIC Tgn & Tlc Demo', 'pic.ttl@demo.test', 'pic', 'TTL', 'Unit Tgn & Tlc', 'Mengurus kontrak unit Tgn & Tlc saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
-  ['PIC Upitra Demo', 'pic.upt@demo.test', 'pic', 'UPT', 'Unit Upitra', 'Mengurus kontrak unit Upitra saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
-  ['PIC Cristore Demo', 'pic.crs@demo.test', 'pic', 'CRS', 'Unit Cristore', 'Mengurus kontrak unit Cristore saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
+  ['PIC Tgn & Tlc Demo', 'pic.ttl@demo.test', 'pic', 'TTL', 'PIC · Tgn & Tlc', 'Mengurus kontrak unit Tgn & Tlc saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
+  ['PIC Upitra Demo', 'pic.upt@demo.test', 'pic', 'UPT', 'PIC · Upitra', 'Mengurus kontrak unit Upitra saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
+  ['PIC Cristore Demo', 'pic.crs@demo.test', 'pic', 'CRS', 'PIC · Cristore', 'Mengurus kontrak unit Cristore saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
   ['Auditor Demo', 'viewer@demo.test', 'viewer', null, 'Auditor', 'Baca saja: pantau status dan masa berlaku tanpa nilai dan dokumen.'],
 ];
 const AKUN_LAMA = ['pic@demo.test'];
@@ -52,6 +52,8 @@ async function selaraskanAkun(t, divisi) {
     [nama, email, hashSandi(randomBytes(24).toString('hex')), peran, kd ? divisi[kd] : null]))?.id;
   }
   await t.jalankan('UPDATE pengguna SET aktif = false WHERE demo AND email = ANY($1)', [AKUN_LAMA]);
+  // Di demo, kategori kontrak hanya tiga unit: divisi bawaan lama disembunyikan dari pilihan (Admin Sistem bisa mengaktifkannya lagi).
+  await t.jalankan("UPDATE divisi SET aktif = false WHERE kode IN ('BD','OPS','AKD','LGL','FIN') AND NOT EXISTS (SELECT 1 FROM kontrak k WHERE k.divisi_id = divisi.id AND k.ruang_lingkup IS DISTINCT FROM $1)", [MARKER]);
   return pengguna;
 }
 

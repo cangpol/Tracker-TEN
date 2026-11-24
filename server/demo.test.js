@@ -45,7 +45,7 @@ test('login demo satu klik: hanya saat DEMO_MODE=1, hanya akun demo, tercatat di
   assert.equal(d.aktif, true);
   assert.equal(d.akun.length, 9);
   assert.deepEqual(d.akun.map((a) => a.peran), ['admin_sistem', 'legal', 'legal', 'direksi', 'finance', 'pic', 'pic', 'pic', 'viewer']); // urut kartu
-  assert.deepEqual(d.akun.filter((a) => a.peran === 'pic').map((a) => a.peran_label), ['Unit Tgn & Tlc', 'Unit Upitra', 'Unit Cristore']);
+  assert.deepEqual(d.akun.filter((a) => a.peran === 'pic').map((a) => a.peran_label), ['PIC · Tgn & Tlc', 'PIC · Upitra', 'PIC · Cristore']);
   assert.ok(d.akun.every((a) => a.ringkas && a.peran_label && a.email === undefined), 'email tidak dibocorkan');
 
   const biasa = (await u.db.satu("SELECT id FROM pengguna WHERE email = 'biasa@uji.test'")).id;

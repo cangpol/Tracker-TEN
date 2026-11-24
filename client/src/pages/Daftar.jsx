@@ -82,7 +82,7 @@ export default function Daftar({ rute }) {
             {Object.entries(STATUS_LABEL).filter(([k]) => k !== 'arsip').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
-        <label>Divisi
+        <label>Kategori unit
           <select value={f.divisi_id} onChange={ubah('divisi_id')}>
             <option value="">Semua</option>
             {master.data?.divisi.map((x) => <option key={x.id} value={x.id}>{x.nama}</option>)}
@@ -126,7 +126,7 @@ export default function Daftar({ rute }) {
         ) : (
           <div className="tabel-bungkus">
             <table>
-              <thead><tr><th>Kontrak</th><th>Divisi / PIC</th><th>Status</th><th>Berakhir</th><th>Sisa</th><th>Tingkat</th><th>Ubah status</th>{adaNilai && <th>Nilai</th>}</tr></thead>
+              <thead><tr><th>Kontrak</th><th>Unit / PIC</th><th>Status</th><th>Berakhir</th><th>Sisa</th><th>Tingkat</th><th>Ubah status</th>{adaNilai && <th>Nilai</th>}</tr></thead>
               <tbody>
                 {d.data.map((k) => (
                   <tr key={k.id}>

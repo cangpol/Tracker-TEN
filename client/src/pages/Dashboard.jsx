@@ -129,7 +129,7 @@ export default function Dashboard() {
 
           <div className="tiga">
             <Distribusi id="h-status" judul="Komposisi status" baris={d.per_status.map((x) => [STATUS_LABEL[x.status] ?? x.status, x.jumlah])} />
-            <Distribusi id="h-divisi" judul="Kontrak aktif per divisi" baris={d.per_divisi.map((x) => [x.divisi, x.jumlah])} />
+            <Distribusi id="h-divisi" judul="Kontrak aktif per unit" baris={d.per_divisi.map((x) => [x.divisi, x.jumlah])} />
             <Distribusi id="h-risiko" judul="Kontrak aktif per tingkat risiko" baris={d.per_risiko.map((x) => [x.risiko[0].toUpperCase() + x.risiko.slice(1), x.jumlah])} />
           </div>
         </>
