@@ -1,6 +1,8 @@
 import { get } from '../api.js';
-import { Ikon, Tingkat, Tanda, Status, useData, tanggal, sisaTeks, STATUS_LABEL } from '../ui.jsx';
+import { Ikon, Tingkat, Tanda, Status, useData, useSaya, bisa, tanggal, sisaTeks, uang, STATUS_LABEL, JENIS_KONTRAK_LABEL } from '../ui.jsx';
 
+// Status yang menunggu keputusan tiap peran penyetuju.
+const TAHAP_ANDA = { legal: 'review_legal', finance: 'review_finance', direksi: 'persetujuan_direksi' };
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 function Kartu({ n, l, href, peringatan }) {
@@ -12,6 +14,7 @@ function Kartu({ n, l, href, peringatan }) {
 }
 
 export default function Dashboard() {
+  const saya = useSaya();
   const s = useData(() => get('/dashboard'), []);
   const d = s.data;
   const radarJumlah = (id) => d?.radar.find((r) => r.id === id)?.jumlah ?? 0;
@@ -25,18 +28,23 @@ export default function Dashboard() {
           <section className="hero" aria-labelledby="h-hero">
             <div>
               <h1 id="h-hero">
-                {segera + d.kartu.notice_terlewat + d.kartu.perlu_konfirmasi_auto_renew === 0
-                  ? 'Semua kerja sama terpantau aman'
-                  : `${segera} kontrak berakhir dalam 30 hari atau sudah lewat`}
+                {d.kartu.menunggu_anda > 0
+                  ? `${d.kartu.menunggu_anda} kontrak menunggu persetujuan Anda`
+                  : segera + d.kartu.notice_terlewat + d.kartu.perlu_konfirmasi_auto_renew === 0
+                    ? 'Semua kerja sama terpantau aman'
+                    : `${segera} kontrak berakhir dalam 30 hari atau sudah lewat`}
               </h1>
               <p>Urus yang paling mendesak lebih dulu. Klik angka untuk melihat daftarnya.</p>
               <div className="chips">
+                {TAHAP_ANDA[saya.peran] && (
+                  <a className="chip" href={`#/kontrak?status=${TAHAP_ANDA[saya.peran]}`}><b>{d.kartu.menunggu_anda}</b><span>Menunggu persetujuan Anda</span></a>
+                )}
                 <a className="chip" href="#/kontrak?rentang=30"><b>{radarJumlah('30')}</b><span>Berakhir ≤ 30 hari</span></a>
                 <a className="chip" href="#/kontrak?perlu=notice"><b>{d.kartu.notice_terlewat}</b><span>Notice terlewat</span></a>
                 <a className="chip" href="#/kontrak?perlu=auto_renew"><b>{d.kartu.perlu_konfirmasi_auto_renew}</b><span>Konfirmasi auto-renew</span></a>
               </div>
             </div>
-            <a className="btn utama" href="#/kontrak/baru"><Ikon n="tambah" />Tambah kontrak</a>
+            {bisa(saya, 'tambah_kontrak') && <a className="btn utama" href="#/kontrak/baru"><Ikon n="tambah" />Tambah kontrak</a>}
           </section>
 
           <div className="grid-kartu">
@@ -46,6 +54,21 @@ export default function Dashboard() {
             <Kartu n={d.kartu.berakhir} l="Berakhir" href="#/kontrak?status=berakhir" />
             <Kartu n={d.kartu.dalam_proses} l="Dalam proses persetujuan" href="#/kontrak?status=draft" />
           </div>
+
+          {d.nilai_aktif && d.nilai_aktif.length > 0 && (
+            <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-nilai">
+              <h2 id="h-nilai">Nilai kontrak aktif</h2>
+              <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>Dikelompokkan per mata uang, tidak dijumlahkan lintas mata uang. Hanya terlihat oleh Legal, Finance, dan Direksi.</p>
+              <div className="grid-kartu" style={{ marginBottom: 0 }}>
+                {d.nilai_aktif.map((x) => (
+                  <div key={`${x.mata_uang}${x.jenis_kontrak}`} className="kartu angka">
+                    <span className="n" style={{ fontSize: '1.35rem' }}>{uang(x.total, x.mata_uang)}</span>
+                    <span className="l">{JENIS_KONTRAK_LABEL[x.jenis_kontrak]} · {x.mata_uang} · {x.jumlah} kontrak</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-radar">
             <h2 id="h-radar">Radar masa berlaku</h2>
@@ -83,10 +106,12 @@ export default function Dashboard() {
                         <td><Tingkat tingkat={k.tingkat} /></td>
                         <td>
                           <div className="baris">
-                            {k.tautan_dokumen_final && (
-                              <a className="btn kecil" href={k.tautan_dokumen_final} target="_blank" rel="noopener noreferrer"><Ikon n="luar" />Buka dokumen</a>
+                            {k.dokumen_final_id && (
+                              <a className="btn kecil" href={`/api/v1/dokumen/${k.dokumen_final_id}/buka`} target="_blank" rel="noopener noreferrer"><Ikon n="luar" />Buka dokumen</a>
                             )}
-                            <a className="btn kecil utama" href={`#/kontrak/${k.id}`}>Ajukan perpanjangan</a>
+                            <a className={`btn kecil${bisa(saya, 'catat_perpanjangan') || saya.peran === 'pic' ? ' utama' : ''}`} href={`#/kontrak/${k.id}`}>
+                              {bisa(saya, 'catat_perpanjangan') || saya.peran === 'pic' ? 'Ajukan perpanjangan' : 'Lihat detail'}
+                            </a>
                           </div>
                         </td>
                       </tr>

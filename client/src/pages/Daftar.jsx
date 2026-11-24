@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { get } from '../api.js';
-import { Ikon, Tingkat, StatusLencana, Tanda, Status, useData, tanggal, sisaTeks, STATUS_LABEL } from '../ui.jsx';
+import { Ikon, Tingkat, StatusLencana, Tanda, Status, useData, useSaya, bisa, tanggal, sisaTeks, uang, STATUS_LABEL } from '../ui.jsx';
 
 const parse = (rute) => Object.fromEntries(new URLSearchParams(rute.split('?')[1] || ''));
 
 export default function Daftar({ rute }) {
+  const saya = useSaya();
   const awal = parse(rute);
   const [f, setF] = useState({ q: '', status: '', divisi_id: '', tingkat: '', jenis: '', rentang: '', perlu: '', ...awal });
   const [q, setQ] = useState(f.q);
@@ -16,13 +17,17 @@ export default function Daftar({ rute }) {
   const s = useData(() => get(`/kontrak?${new URLSearchParams({ ...f, halaman })}`), [f.q, f.status, f.divisi_id, f.tingkat, f.jenis, f.rentang, f.perlu, halaman]);
   const d = s.data;
   const ubah = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setHalaman(1); };
+  const adaNilai = !!d?.data[0] && 'nilai_kontrak' in d.data[0]; // kolom nilai hanya dikirim server untuk peran berhak
   const halamanMaks = d ? Math.max(1, Math.ceil(d.total / d.per_halaman)) : 1;
 
   return (
     <>
       <div className="kepala">
         <div><h1>Daftar Kontrak</h1><p>{d ? `${d.total} kontrak` : ' '}</p></div>
-        <a className="btn utama" href="#/kontrak/baru"><Ikon n="tambah" />Tambah kontrak</a>
+        <div className="baris">
+          {bisa(saya, 'ekspor') && <a className="btn" href={`/api/v1/laporan/ekspor?${new URLSearchParams(Object.entries(f).filter(([, x]) => x))}`}><Ikon n="unduh" />Ekspor CSV</a>}
+          {bisa(saya, 'tambah_kontrak') && <a className="btn utama" href="#/kontrak/baru"><Ikon n="tambah" />Tambah kontrak</a>}
+        </div>
       </div>
 
       <div className="filter" role="search">
@@ -68,7 +73,7 @@ export default function Daftar({ rute }) {
         ) : (
           <div className="tabel-bungkus">
             <table>
-              <thead><tr><th>Kontrak</th><th>Divisi / PIC</th><th>Status</th><th>Berakhir</th><th>Sisa</th><th>Tingkat</th></tr></thead>
+              <thead><tr><th>Kontrak</th><th>Divisi / PIC</th><th>Status</th><th>Berakhir</th><th>Sisa</th><th>Tingkat</th>{adaNilai && <th>Nilai</th>}</tr></thead>
               <tbody>
                 {d.data.map((k) => (
                   <tr key={k.id}>
@@ -82,6 +87,7 @@ export default function Daftar({ rute }) {
                     <td>{tanggal(k.tanggal_berakhir)}</td>
                     <td>{sisaTeks(k.sisa_hari)}</td>
                     <td><Tingkat tingkat={k.tingkat} /></td>
+                    {adaNilai && <td style={{ whiteSpace: 'nowrap' }}>{k.nilai_kontrak ? uang(k.nilai_kontrak, k.mata_uang) : '—'}</td>}
                   </tr>
                 ))}
               </tbody>

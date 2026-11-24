@@ -1,6 +1,19 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+
+/** Profil pengguna login (peran + izin). Hanya untuk menyembunyikan aksi; server tetap memeriksa. */
+export const SayaCtx = createContext(null);
+export const useSaya = () => useContext(SayaCtx);
+export const bisa = (saya, aksi) => !!saya?.izin?.includes(aksi);
 
 const IKON = {
+  lonceng: 'M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9zM13.7 21a2 2 0 01-3.4 0',
+  roda: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
+  unduh: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3',
+  pesawat: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+  pengguna: 'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
+  kunci: 'M7 11V7a5 5 0 0110 0v4M5 11h14a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8a1 1 0 011-1z',
+  log: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4',
+  denyut: 'M3 12h4l3-8 4 16 3-8h4',
   ok: 'M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   waspada: 'M12 9v4m0 4h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z',
   jam: 'M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -26,6 +39,17 @@ export const Ikon = ({ n }) => (
 export const Logo = ({ tinggi }) => (
   <span className="logo-chip"><img src="/logo-ten.jpg" alt="TEN" style={tinggi ? { height: tinggi } : undefined} /></span>
 );
+
+export const JENIS_KONTRAK_LABEL = { pendapatan: 'Pendapatan', pengeluaran: 'Pengeluaran', non_finansial: 'Non-finansial' };
+export const KATEGORI_LABEL = { draft: 'Draft', final_ttd: 'Final bertanda tangan', adendum: 'Adendum', laporan: 'Laporan', bukti_lain: 'Bukti lain' };
+export const TAHAP_LABEL = { legal: 'Legal', finance: 'Finance', direksi: 'Direksi' };
+
+/** Tampilan uang saja (id-ID). Nilai tersimpan dan dihitung di server sebagai numeric, bukan float. */
+export const uang = (v, mataUang = 'IDR') => {
+  if (v === null || v === undefined || v === '') return '—';
+  try { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: mataUang, minimumFractionDigits: 2 }).format(Number(v)); }
+  catch { return `${mataUang} ${v}`; }
+};
 
 export const STATUS_LABEL = {
   draft: 'Draft', review_legal: 'Review Legal', review_finance: 'Review Finance', persetujuan_direksi: 'Persetujuan Direksi',

@@ -24,7 +24,7 @@ export const TRANSISI = {
 
 const WAJIB_ALASAN = new Set(['draft', 'dibatalkan', 'diputus', 'review_legal']);
 
-export const AMBANG_BAWAAN = { kuning: 180, oranye: 90 };
+export const AMBANG_BAWAAN = { kuning: 180, oranye: 90, direksi: 0 };
 
 /** Tanggal hari ini menurut Asia/Jakarta, format YYYY-MM-DD. */
 export function hariIni(sekarang = new Date()) {
@@ -83,7 +83,7 @@ export function hitung(k, hari, amb = AMBANG_BAWAAN) {
 }
 
 /** Kembalikan pesan error (string) bila transisi tidak sah, atau null bila boleh. */
-export function cekTransisi(k, ke, catatan) {
+export function cekTransisi(k, ke, catatan, amb = AMBANG_BAWAAN) {
   if (!(TRANSISI[k.status] || []).includes(ke)) {
     return `Transisi dari "${k.status}" ke "${ke}" tidak diizinkan.`;
   }
@@ -93,15 +93,49 @@ export function cekTransisi(k, ke, catatan) {
   if (k.status === 'draft' && ke === 'review_legal') {
     const kurang = ['judul', 'jenis_dokumen', 'counterparty_id', 'divisi_id', 'ruang_lingkup'].filter((f) => !k[f]);
     if (kurang.length) return `Lengkapi dulu: ${kurang.join(', ')}.`;
+    if (!k.punya_draft) return 'Tambahkan minimal satu dokumen kategori draft sebelum diajukan ke Legal.';
+  }
+  // Routing persetujuan menurut nilai dan risiko (BREAKDOWN bagian 4). Hanya berlaku untuk langkah maju.
+  const tujuan = { review_legal: tujuanSetelahLegal, review_finance: tujuanSetelahFinance }[k.status];
+  if (tujuan && ['review_finance', 'persetujuan_direksi', 'menunggu_ttd'].includes(ke) && ke !== tujuan(k, amb)) {
+    return `Kontrak ini harus melalui tahap ${LABEL_TAHAP[tujuan(k, amb)]} berikutnya.`;
   }
   if (ke === 'aktif') {
-    const kurang = ['tautan_dokumen_final', 'nomor_kontrak', 'tanggal_ttd', 'tanggal_mulai', 'tanggal_berakhir']
-      .filter((f) => !k[f]);
-    if (kurang.length) return `Status Aktif butuh dokumen final bertanda tangan dan data lengkap: ${kurang.join(', ')}.`;
+    const kurang = ['nomor_kontrak', 'tanggal_ttd', 'tanggal_mulai', 'tanggal_berakhir'].filter((f) => !k[f]);
+    if (!k.punya_final) return 'Status Aktif butuh dokumen final bertanda tangan (kategori final_ttd).';
+    if (kurang.length) return `Status Aktif butuh data lengkap: ${kurang.join(', ')}.`;
   }
   return null;
 }
 
+const LABEL_TAHAP = { review_finance: 'Review Finance', persetujuan_direksi: 'Persetujuan Direksi', menunggu_ttd: 'Menunggu TTD' };
+
+/** Finance wajib bila kontrak bernilai. */
+export const perluFinance = (k) => Number(k.nilai_kontrak) > 0;
+
+/** Direksi wajib bila nilai >= ambang (0 = ambang nonaktif) atau risiko tinggi. */
+export const perluDireksi = (k, amb = AMBANG_BAWAAN) =>
+  k.tingkat_risiko === 'tinggi' || (amb.direksi > 0 && Number(k.nilai_kontrak) >= amb.direksi);
+
+export const tujuanSetelahLegal = (k, amb) => (perluFinance(k) ? 'review_finance' : perluDireksi(k, amb) ? 'persetujuan_direksi' : 'menunggu_ttd');
+export const tujuanSetelahFinance = (k, amb) => (perluDireksi(k, amb) ? 'persetujuan_direksi' : 'menunggu_ttd');
+
 /** Hasil job harian: kontrak yang harus menjadi 'berakhir' (auto-renew butuh konfirmasi Legal, tidak ikut). */
 export const harusBerakhir = (k, hari) =>
   PANTAU.includes(k.status) && !!k.tanggal_berakhir && !k.perpanjangan_otomatis && selisihHari(k.tanggal_berakhir, hari) <= 0;
+
+/** Tanggal pemicu aturan reminder untuk kontrak ini, atau null bila aturan tidak berlaku (BREAKDOWN bagian 7). */
+export function tanggalPicu(k, aturan) {
+  if (!k.tanggal_berakhir) return null;
+  if (aturan.acuan === 'notice' && !(k.masa_pemberitahuan_hari > 0)) return null;
+  const acuan = aturan.acuan === 'notice' ? tambahHari(k.tanggal_berakhir, -k.masa_pemberitahuan_hari) : k.tanggal_berakhir;
+  return tambahHari(acuan, -aturan.hari_sebelum);
+}
+
+/** Transisi yang tersedia menurut tabel status DAN routing persetujuan (nilai/risiko). */
+export function transisiTersedia(k, amb = AMBANG_BAWAAN) {
+  const tujuan = { review_legal: tujuanSetelahLegal, review_finance: tujuanSetelahFinance }[k.status];
+  return (TRANSISI[k.status] || []).filter(
+    (ke) => !(tujuan && ['review_finance', 'persetujuan_direksi', 'menunggu_ttd'].includes(ke) && ke !== tujuan(k, amb)),
+  );
+}

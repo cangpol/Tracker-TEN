@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hitung, cekTransisi, harusBerakhir, hariIni, tambahHari, TRANSISI, STATUS } from './logika.js';
+import { hitung, cekTransisi, harusBerakhir, hariIni, tambahHari, TRANSISI, STATUS, AMBANG_BAWAAN, tujuanSetelahLegal, tujuanSetelahFinance, transisiTersedia, tanggalPicu } from './logika.js';
 
 const H = '2026-11-23';
 const k = (sisa, extra = {}) => ({ status: 'aktif', tanggal_berakhir: tambahHari(H, sisa), masa_pemberitahuan_hari: 0, perpanjangan_otomatis: 0, ...extra });
@@ -34,20 +34,50 @@ test('auto-renew tidak menjadi berakhir, minta konfirmasi', () => {
   assert.equal(harusBerakhir(k(1), H), false);
 });
 
-test('tabel transisi: semua pasangan di luar tabel ditolak', () => {
+test('tabel transisi: pasangan di luar tabel selalu ditolak, yang ada di tabel tidak pernah dinyatakan tidak diizinkan', () => {
+  const lengkap = { judul: 'x', jenis_dokumen: 'MoU', counterparty_id: 1, divisi_id: 1, ruang_lingkup: 'x', punya_draft: true, punya_final: true,
+    nomor_kontrak: 'N', tanggal_ttd: H, tanggal_mulai: H, tanggal_berakhir: H, tingkat_risiko: 'sedang', nilai_kontrak: null };
   for (const dari of STATUS) {
     for (const ke of STATUS) {
-      const sah = TRANSISI[dari].includes(ke);
-      const lengkap = { status: dari, judul: 'x', jenis_dokumen: 'MoU', counterparty_id: 1, divisi_id: 1, ruang_lingkup: 'x',
-        tautan_dokumen_final: 'https://a.example', nomor_kontrak: 'N', tanggal_ttd: H, tanggal_mulai: H, tanggal_berakhir: H };
-      const hasil = cekTransisi(lengkap, ke, 'alasan');
-      assert.equal(hasil === null, sah, `${dari} -> ${ke}`);
+      const hasil = cekTransisi({ ...lengkap, status: dari }, ke, 'alasan');
+      if (TRANSISI[dari].includes(ke)) assert.doesNotMatch(String(hasil), /tidak diizinkan/, dari + " -> " + ke);
+      else assert.match(String(hasil), /tidak diizinkan/, dari + " -> " + ke);
     }
   }
 });
 
-test('aktif butuh dokumen final dan tanggal lengkap', () => {
-  assert.match(cekTransisi({ status: 'menunggu_ttd' }, 'aktif', ''), /dokumen final/);
+test('aktif butuh dokumen final dan data lengkap; ajukan ke Legal butuh draft', () => {
+  const dasar = { status: 'menunggu_ttd', nomor_kontrak: 'N', tanggal_ttd: H, tanggal_mulai: H, tanggal_berakhir: tambahHari(H, 9) };
+  assert.match(cekTransisi({ ...dasar, punya_final: false }, 'aktif', ''), /final/);
+  assert.match(cekTransisi({ ...dasar, punya_final: true, nomor_kontrak: null }, 'aktif', ''), /nomor_kontrak/);
+  assert.equal(cekTransisi({ ...dasar, punya_final: true }, 'aktif', ''), null);
+  const draf = { status: 'draft', judul: 'x', jenis_dokumen: 'MoU', counterparty_id: 1, divisi_id: 1, ruang_lingkup: 'x' };
+  assert.match(cekTransisi({ ...draf, punya_draft: false }, 'review_legal', ''), /draft/);
+  assert.equal(cekTransisi({ ...draf, punya_draft: true }, 'review_legal', ''), null);
+});
+
+test('routing persetujuan: nilai > 0 -> Finance; risiko tinggi atau nilai >= ambang -> Direksi; ambang 0 = nonaktif', () => {
+  const k = (e) => ({ status: 'review_legal', tingkat_risiko: 'sedang', nilai_kontrak: null, ...e });
+  assert.equal(tujuanSetelahLegal(k(), AMBANG_BAWAAN), 'menunggu_ttd');
+  assert.equal(tujuanSetelahLegal(k({ nilai_kontrak: '1.00' }), AMBANG_BAWAAN), 'review_finance');
+  assert.equal(tujuanSetelahLegal(k({ nilai_kontrak: '0.00' }), AMBANG_BAWAAN), 'menunggu_ttd');
+  assert.equal(tujuanSetelahLegal(k({ tingkat_risiko: 'tinggi' }), AMBANG_BAWAAN), 'persetujuan_direksi');
+  const amb = { ...AMBANG_BAWAAN, direksi: 1000 };
+  assert.equal(tujuanSetelahFinance(k({ nilai_kontrak: '999.99' }), amb), 'menunggu_ttd'); // batas bawah
+  assert.equal(tujuanSetelahFinance(k({ nilai_kontrak: '1000.00' }), amb), 'persetujuan_direksi'); // batas tepat
+  assert.equal(tujuanSetelahFinance(k({ nilai_kontrak: '99999999' }), AMBANG_BAWAAN), 'menunggu_ttd');
+  assert.match(cekTransisi(k({ nilai_kontrak: '5' }), 'menunggu_ttd', 'x'), /Review Finance/);
+  assert.equal(cekTransisi(k({ nilai_kontrak: '5' }), 'review_finance', 'x'), null);
+  assert.deepEqual(transisiTersedia(k({ nilai_kontrak: '5' })), ['draft', 'review_finance']);
+  assert.deepEqual(transisiTersedia(k()), ['draft', 'menunggu_ttd']);
+});
+
+test('pemicu reminder dari tanggal berakhir dan batas notice', () => {
+  const kt = { tanggal_berakhir: '2027-03-31', masa_pemberitahuan_hari: 30 };
+  assert.equal(tanggalPicu(kt, { acuan: 'berakhir', hari_sebelum: 30 }), '2027-03-01');
+  assert.equal(tanggalPicu(kt, { acuan: 'notice', hari_sebelum: 7 }), '2027-02-22'); // notice = 1 Mar, dikurangi 7
+  assert.equal(tanggalPicu({ ...kt, masa_pemberitahuan_hari: 0 }, { acuan: 'notice', hari_sebelum: 7 }), null); // tanpa notice
+  assert.equal(tanggalPicu({ ...kt, tanggal_berakhir: null }, { acuan: 'berakhir', hari_sebelum: 7 }), null);
 });
 
 test('alasan wajib untuk pemutusan dan pembatalan', () => {
