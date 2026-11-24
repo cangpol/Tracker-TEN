@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { cocokSandi, hashSandi, HASH_PALSU } from './sandi.js';
-import { boleh, izinPeran, LABEL_PERAN, RINGKAS_PERAN, PERAN } from './akses.js';
+import { boleh, izinPeran, terbatasDivisi, LABEL_PERAN, RINGKAS_PERAN, PERAN } from './akses.js';
 import { AKUN } from './demo.js';
 import { PgStore } from './sesi.js';
 import { Galat, tolak } from './umum.js';
@@ -166,7 +166,10 @@ export function buatApp(db, { kirimEmail = null } = {}) {
       const lihat = boleh(req.pengguna.peran, 'lihat_kontrak');
       res.json({
         divisi: await db.q('SELECT id, kode, nama FROM divisi WHERE aktif ORDER BY nama'),
-        counterparty: lihat ? (await db.q('SELECT nama FROM counterparty ORDER BY nama')).map((r) => r.nama) : [],
+        // PIC hanya mengetahui pihak lawan dari kontrak unitnya sendiri (kontrak unit lain tidak boleh bocor lewat daftar saran).
+        counterparty: !lihat ? [] : (await (terbatasDivisi(req.pengguna.peran)
+          ? db.q('SELECT DISTINCT c.nama FROM counterparty c JOIN kontrak k ON k.counterparty_id = c.id WHERE k.divisi_id = $1 ORDER BY c.nama', [req.pengguna.divisi_id ?? 0])
+          : db.q('SELECT nama FROM counterparty ORDER BY nama'))).map((r) => r.nama),
         jenis_dokumen: JENIS, tingkat_risiko: RISIKO, jenis_kontrak: JENIS_KONTRAK, kategori_dokumen: KATEGORI,
         domain_tautan: lihat ? await domainDiizinkan(db) : [],
       });

@@ -292,6 +292,31 @@ test('PIC hanya melihat dan mengubah kontrak divisinya (uji IDOR), termasuk doku
   assert.equal(dash.kartu.total, (await picBD('GET', '/kontrak')).data.total);
 });
 
+test('kontrak satu unit tidak terlihat oleh PIC unit lain sejak draft sampai akhir (daftar, detail, saran counterparty, ekspor, notifikasi)', async () => {
+  const judul = 'MoU Rahasia Unit BD';
+  const { data: k } = await legal('POST', '/kontrak', baruBody(BD, { judul, counterparty_nama: 'Mitra Rahasia Unit BD', ruang_lingkup: 'x' }));
+  assert.equal((await legal('POST', `/kontrak/${k.id}/dokumen`, dok('draft'))).status, 201);
+  const periksa = async (status) => {
+    const milik = await picBD('GET', `/kontrak/${k.id}`);
+    assert.equal(milik.status, 200); assert.equal(milik.data.status, status); // unit pemilik melihat status di tiap tahap
+    assert.equal((await pic('GET', `/kontrak/${k.id}`)).status, 404);
+    assert.ok(!JSON.stringify((await pic('GET', '/kontrak')).data).includes(judul));
+    assert.ok((await picBD('GET', '/kontrak')).data.data.some((x) => x.id === k.id));
+  };
+  await periksa('draft');
+  assert.equal((await T(legal, k.id, 'review_legal')).status, 200);
+  await periksa('review_legal');
+  assert.equal((await T(legal2, k.id, 'menunggu_ttd')).status, 200); // penyetuju bukan pembuat
+  await periksa('menunggu_ttd');
+  assert.ok(!(await pic('GET', '/master')).data.counterparty.includes('Mitra Rahasia Unit BD'), 'saran counterparty tidak membocorkan unit lain');
+  assert.ok((await picBD('GET', '/master')).data.counterparty.includes('Mitra Rahasia Unit BD'));
+  assert.ok((await legal('GET', '/master')).data.counterparty.includes('Mitra Rahasia Unit BD'));
+  const csv = await (await pic.mentah('GET', '/laporan/ekspor')).text();
+  assert.ok(!String(csv).includes(judul), 'ekspor PIC tidak memuat kontrak unit lain');
+  const notif = (await pic('GET', '/notifikasi')).data.data;
+  assert.ok(!notif.some((n) => n.kontrak_id === k.id || n.pesan.includes(judul)), 'tidak ada notifikasi tentang kontrak unit lain');
+});
+
 test('PIC: kontrak baru selalu di divisinya, tidak bisa pindah divisi, terkunci setelah Menunggu TTD', async () => {
   const dibuat = await pic('POST', '/kontrak', baruBody(BD)); // divisi di body diabaikan
   assert.equal(dibuat.status, 201);
