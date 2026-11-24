@@ -13,6 +13,42 @@ function Kartu({ n, l, href, peringatan }) {
   );
 }
 
+/** Panel khusus Legal: satu daftar "perlu tindakan" berurut prioritas, tiap baris disertai alasannya. */
+function PanelLegal({ l }) {
+  return (
+    <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-legal">
+      <h2 id="h-legal">Panel Legal: perlu tindakan Anda</h2>
+      <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>
+        {l.total === 0 ? 'Tidak ada yang menunggu tindakan Legal.' : `${l.total} hal menunggu, berurut prioritas.`}
+        {l.dibuat_sendiri_menunggu > 0 && ` ${l.dibuat_sendiri_menunggu} kontrak buatan Anda menunggu Legal lain untuk menyetujui.`}
+      </p>
+      <div className="grid-3" style={{ marginBottom: 16 }}>
+        {l.ringkas.map((r) => (
+          <div key={r.kode} className="kartu angka"><span className="n">{r.jumlah}</span><span className="l">{r.label}</span></div>
+        ))}
+      </div>
+      {l.tindakan.length > 0 && (
+        <div className="tabel-bungkus">
+          <table>
+            <thead><tr><th>Kontrak</th><th>Unit</th><th>Perlu tindakan</th><th>Sisa</th><th><span className="sr">Aksi</span></th></tr></thead>
+            <tbody>
+              {l.tindakan.map((b, i) => (
+                <tr key={`${b.kode}-${b.id}-${i}`}>
+                  <td><a className="judul" href={`#/kontrak/${b.id}`}>{b.judul}</a><div className="sub">{STATUS_LABEL[b.status]}</div></td>
+                  <td>{b.divisi_nama}</td>
+                  <td><span className="lencana netral">{b.alasan}</span></td>
+                  <td>{b.sisa_hari === null ? '—' : sisaTeks(b.sisa_hari)}</td>
+                  <td><a className="btn kecil utama" href={`#/kontrak/${b.id}`}>Buka</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const RISIKO_LABEL = { tinggi: 'Risiko tinggi', sedang: 'Risiko sedang', rendah: 'Risiko rendah' };
 
 /** Panel khusus Finance: antrian review dengan nilai, nilai dalam proses, nilai yang segera berakhir. Nilai per mata uang, tidak dijumlah lintas mata uang. */
@@ -96,7 +132,7 @@ export default function Dashboard() {
                 {TAHAP_ANDA[saya.peran] && (
                   <a className="chip" href={`#/kontrak?status=${TAHAP_ANDA[saya.peran]}`}><b>{d.kartu.menunggu_anda}</b><span>Menunggu persetujuan Anda</span></a>
                 )}
-                <a className="chip" href="#/kontrak?rentang=30"><b>{radarJumlah('30')}</b><span>Berakhir ≤ 30 hari</span></a>
+                <a className="chip" href="#/kontrak?rentang=30"><b>{radarJumlah('30')}</b><span>Berakhir 1–30 hari</span></a>
                 <a className="chip" href="#/kontrak?perlu=notice"><b>{d.kartu.notice_terlewat}</b><span>Notice terlewat</span></a>
                 <a className="chip" href="#/kontrak?perlu=auto_renew"><b>{d.kartu.perlu_konfirmasi_auto_renew}</b><span>Konfirmasi auto-renew</span></a>
               </div>
@@ -127,6 +163,7 @@ export default function Dashboard() {
             </section>
           )}
 
+          {d.legal && <PanelLegal l={d.legal} />}
           {d.finance && <PanelFinance f={d.finance} />}
 
           <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-radar">

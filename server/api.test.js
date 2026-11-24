@@ -242,6 +242,22 @@ test('panel Finance: antrian review dengan nilai, nilai dalam proses, hanya untu
   assert.ok(!(await finance('GET', '/dashboard')).data.finance.antrian.some((x) => x.id === id), 'keluar dari antrian setelah diputuskan');
 });
 
+test('panel Legal: daftar perlu tindakan dengan alasan, buatan sendiri dikecualikan, hanya untuk Legal', async () => {
+  const id = await sampaiReviewLegal({ judul: 'Panel Legal uji' }); // dibuat legal
+  const p1 = (await legal('GET', '/dashboard')).data.legal;
+  assert.ok(!p1.tindakan.some((x) => x.id === id && x.kode === 'review_legal'), 'buatan sendiri tidak masuk antrian review');
+  assert.ok(p1.dibuat_sendiri_menunggu >= 1);
+  const p2 = (await legal2('GET', '/dashboard')).data.legal;
+  const baris = p2.tindakan.find((x) => x.id === id);
+  assert.ok(baris && baris.kode === 'review_legal' && baris.alasan === 'Menunggu review Legal');
+  assert.equal(p2.ringkas.find((r) => r.kode === 'review_legal').jumlah >= 1, true);
+  const draftId = (await legal('POST', '/kontrak', baru({ judul: 'Draft tanpa berkas uji' }))).data.id;
+  assert.equal((await legal('GET', '/dashboard')).data.legal.tindakan.find((x) => x.id === draftId)?.kode, 'draft_tanpa_berkas');
+  for (const [nama, k] of [['finance', finance], ['direksi', direksi], ['pic', pic], ['viewer', viewer]]) {
+    assert.equal((await k('GET', '/dashboard')).data.legal, undefined, nama);
+  }
+});
+
 test('antrian "menunggu Anda" untuk penyetuju tidak menghitung kontrak buatannya sendiri', async () => {
   const antrian = async (k) => (await k('GET', '/dashboard')).data.kartu.menunggu_anda;
   const [a0, b0] = [await antrian(legal), await antrian(legal2)];

@@ -117,6 +117,29 @@ async function panelFinance(db, semua, hari) {
   };
 }
 
+const KODE_LEGAL = {
+  review_legal: 'Menunggu review Legal', notice_terlewat: 'Batas notice terlewat', auto_renew: 'Auto-renew perlu konfirmasi',
+  tanpa_final: 'Kontrak berjalan tanpa dokumen final', draft_tanpa_berkas: 'Draft belum punya berkas', draft: 'Draft menunggu diajukan',
+};
+
+/** Panel khusus Legal: satu daftar "perlu tindakan" berurut prioritas, dengan alasan. Hanya membaca data. */
+function panelLegal(semua, dipantau, u) {
+  const baris = [];
+  const tambah = (kode, k) => baris.push({ kode, alasan: KODE_LEGAL[kode], id: k.id, judul: k.judul, divisi_nama: k.divisi_nama, status: k.status, sisa_hari: k.sisa_hari ?? null });
+  for (const k of semua.filter((x) => x.status === 'review_legal' && x.dibuat_oleh !== u.id)) tambah('review_legal', k); // buatan sendiri tidak boleh disetujui sendiri
+  for (const k of dipantau.filter((x) => x.notice_terlewat)) tambah('notice_terlewat', k);
+  for (const k of dipantau.filter((x) => x.perlu_konfirmasi_auto_renew)) tambah('auto_renew', k);
+  for (const k of dipantau.filter((x) => !x.punya_final)) tambah('tanpa_final', k);
+  for (const k of semua.filter((x) => x.status === 'draft' && !x.punya_draft)) tambah('draft_tanpa_berkas', k);
+  for (const k of semua.filter((x) => x.status === 'draft' && x.punya_draft)) tambah('draft', k);
+  return {
+    ringkas: Object.keys(KODE_LEGAL).map((kode) => ({ kode, label: KODE_LEGAL[kode], jumlah: baris.filter((b) => b.kode === kode).length })),
+    tindakan: baris.slice(0, 30),
+    total: baris.length,
+    dibuat_sendiri_menunggu: semua.filter((x) => x.status === 'review_legal' && x.dibuat_oleh === u.id).length,
+  };
+}
+
 export function pasangKontrak(api, { db, catat, izin }) {
   const ambilKontrak = async (id, user, q = db) => {
     const n = Number(id);
@@ -375,6 +398,7 @@ export function pasangKontrak(api, { db, catat, izin }) {
           : undefined,
         // Panel khusus Finance: antrian review beserta nilainya, nilai yang masih dalam proses, dan nilai yang segera berakhir (numeric dijumlah di SQL).
         finance: u.peran === 'finance' ? await panelFinance(db, semua, hari) : undefined,
+        legal: u.peran === 'legal' ? panelLegal(semua, dipantau, u) : undefined,
         prioritas: dipantau
           .filter((k) => k.sisa_hari <= amb.kuning || k.notice_terlewat || k.perlu_konfirmasi_auto_renew)
           .sort((a, b) => urgensi(a) - urgensi(b)).slice(0, 15).map((k) => saring(u, k)),
