@@ -199,6 +199,11 @@ INSERT INTO aturan_reminder (acuan, hari_sebelum, peran_penerima) VALUES
   ('notice',7,'pic'),('notice',7,'legal'),('notice',7,'direksi');
 `,
   },
+  {
+    id: 2,
+    // Unit bisnis grup: tiap unit punya akun PIC yang hanya melihat kontrak unitnya.
+    sql: `INSERT INTO divisi (kode, nama) VALUES ('TTL','Tgn & Tlc'),('UPT','Upitra'),('CRS','Cristore') ON CONFLICT (kode) DO NOTHING;`,
+  },
 ];
 
 /** Jalankan migrasi yang belum ada. Aman dipanggil bersamaan dari banyak instance (kunci advisory). */

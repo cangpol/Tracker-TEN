@@ -115,7 +115,10 @@ export function pasangKontrak(api, { db, catat, izin }) {
       const per = 25;
       const f = URUTAN[req.query.urut] || URUTAN.sisa_hari;
       const daftar = filterKontrak(await semuaAktif(db, u), req.query).sort((a, b) => (f(a) < f(b) ? -1 : f(a) > f(b) ? 1 : 0));
-      res.json({ total: daftar.length, halaman, per_halaman: per, data: daftar.slice((halaman - 1) * per, halaman * per).map((k) => saring(u, k)) });
+      const amb = await ambang(db);
+      // Menu ubah status per baris: hanya tahap yang sah untuk kondisi kontrak dan peran pengguna (aturan yang sama dengan halaman detail).
+      const baris = daftar.slice((halaman - 1) * per, halaman * per).map((k) => ({ ...saring(u, k), transisi_tersedia: transisiTersedia(k, amb).filter((ke) => !tolakPelaku(u, k, ke)) }));
+      res.json({ total: daftar.length, halaman, per_halaman: per, data: baris });
     } catch (e) { next(e); }
   });
 

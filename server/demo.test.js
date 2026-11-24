@@ -20,11 +20,11 @@ test('mode demo mati: daftar kosong dan login demo tidak ada', async () => {
   assert.equal((await k('POST', '/auth/demo', { id: 1 })).status, 404);
 });
 
-test('data demo: 7 akun satu per peran, kontrak mencakup semua tahap, idempoten, tanpa kata sandi yang bisa ditebak', async () => {
+test('data demo: 9 akun (Super Admin, Legal, HQ/TEN, Finance, 3 unit, Auditor), kontrak mencakup semua tahap, idempoten, tanpa kata sandi yang bisa ditebak', async () => {
   assert.equal(await u.db.tx((t) => isiDemo(t)), true);
   assert.equal(await u.db.tx((t) => isiDemo(t)), false); // idempoten
   const akun = await u.db.q('SELECT email, peran, sandi_hash, wajib_ganti FROM pengguna WHERE demo ORDER BY id');
-  assert.deepEqual(akun.map((a) => a.peran).sort(), ['admin_sistem', 'direksi', 'finance', 'legal', 'legal', 'pic', 'viewer']);
+  assert.deepEqual(akun.map((a) => a.peran).sort(), ['admin_sistem', 'direksi', 'finance', 'legal', 'legal', 'pic', 'pic', 'pic', 'viewer']);
   assert.ok(akun.every((a) => a.email.endsWith('@demo.test') && !a.wajib_ganti));
   for (const tebakan of ['demo', 'password', 'demo-partnership-ten', SANDI, 'admin', '12345678', '']) {
     for (const a of akun) assert.equal(cocokSandi(tebakan, a.sandi_hash), false, `${a.email} / ${tebakan}`);
@@ -43,8 +43,9 @@ test('login demo satu klik: hanya saat DEMO_MODE=1, hanya akun demo, tercatat di
   const k = u.klien();
   const d = (await k('GET', '/demo/akun')).data;
   assert.equal(d.aktif, true);
-  assert.equal(d.akun.length, 7);
-  assert.deepEqual(d.akun.map((a) => a.peran), ['admin_sistem', 'legal', 'legal', 'pic', 'finance', 'direksi', 'viewer']); // urut peran
+  assert.equal(d.akun.length, 9);
+  assert.deepEqual(d.akun.map((a) => a.peran), ['admin_sistem', 'legal', 'legal', 'direksi', 'finance', 'pic', 'pic', 'pic', 'viewer']); // urut kartu
+  assert.deepEqual(d.akun.filter((a) => a.peran === 'pic').map((a) => a.peran_label), ['Unit Tgn & Tlc', 'Unit Upitra', 'Unit Cristore']);
   assert.ok(d.akun.every((a) => a.ringkas && a.peran_label && a.email === undefined), 'email tidak dibocorkan');
 
   const biasa = (await u.db.satu("SELECT id FROM pengguna WHERE email = 'biasa@uji.test'")).id;
@@ -59,16 +60,30 @@ test('login demo satu klik: hanya saat DEMO_MODE=1, hanya akun demo, tercatat di
     assert.equal(r.data.peran, a.peran); assert.equal(r.data.demo, true);
     assert.equal((await kl('GET', '/auth/saya')).data.peran, a.peran);
   }
-  assert.ok((await u.db.satu("SELECT count(*)::int AS n FROM audit_log WHERE aksi = 'login_demo'")).n >= 7);
+  assert.ok((await u.db.satu("SELECT count(*)::int AS n FROM audit_log WHERE aksi = 'login_demo'")).n >= 9);
 
   // Matriks hak akses tetap berlaku untuk akun demo.
   const per = async (peran) => { const kl = u.klien(); await kl('POST', '/auth/demo', { id: d.akun.find((a) => a.peran === peran).id }); return kl; };
   const sistem = await per('admin_sistem');
   assert.equal((await sistem('GET', '/kontrak')).status, 403);
   assert.equal((await sistem('GET', '/pengguna')).status, 200);
-  const pic = await per('pic');
+  const picUnit = async (nama) => { const kl = u.klien(); await kl('POST', '/auth/demo', { id: d.akun.find((a) => a.nama === `${nama} Demo`).id }); return kl; };
+  const pic = await picUnit('PIC Tgn & Tlc');
   const daftar = (await pic('GET', '/kontrak')).data;
-  assert.ok(daftar.total >= 1 && daftar.data.every((x) => x.divisi_nama === 'Akademik'));
+  assert.ok(daftar.total >= 1 && daftar.data.every((x) => x.divisi_nama === 'Tgn & Tlc'));
+  for (const [nama, unit] of [['PIC Upitra', 'Upitra'], ['PIC Cristore', 'Cristore']]) {
+    const dl = (await (await picUnit(nama))('GET', '/kontrak')).data;
+    assert.ok(dl.total >= 1 && dl.data.every((x) => x.divisi_nama === unit), nama);
+    const dr = dl.data.find((x) => x.status === 'draft');
+    if (dr) assert.deepEqual(dr.transisi_tersedia, ['review_legal', 'dibatalkan']);
+  }
+  const legalDemo = await per('legal');
+  const rl = (await legalDemo('GET', '/kontrak?status=review_legal')).data.data[0];
+  assert.deepEqual(rl.transisi_tersedia, ['draft', 'review_finance']); // nilai > 0: wajib lewat Finance, tidak bisa loncat
+  // Daftar membawa menu status yang sah per baris: PIC hanya bisa mengajukan draft ke Legal atau membatalkan.
+  const draftPic = daftar.data.find((x) => x.status === 'draft');
+  if (draftPic) assert.deepEqual(draftPic.transisi_tersedia, ['review_legal', 'dibatalkan']);
+  assert.ok(daftar.data.every((x) => Array.isArray(x.transisi_tersedia)));
   assert.ok(!JSON.stringify(daftar).includes('nilai_kontrak'));
   const finance = await per('finance');
   assert.ok((await finance('GET', '/dashboard')).data.nilai_aktif.length > 0);

@@ -3,31 +3,35 @@ import { randomBytes } from 'node:crypto';
 import { hariIni, tambahHari } from './logika.js';
 import { hashSandi } from './sandi.js';
 
-const AKUN = [
-  ['Admin Sistem Demo', 'sistem@demo.test', 'admin_sistem', null],
-  ['Legal Demo', 'legal@demo.test', 'legal', null],
-  ['Legal Kedua Demo', 'legal2@demo.test', 'legal', null],
-  ['PIC Akademik Demo', 'pic@demo.test', 'pic', 'AKD'],
-  ['Finance Demo', 'finance@demo.test', 'finance', null],
-  ['Direksi Demo', 'direksi@demo.test', 'direksi', null],
-  ['Auditor Demo', 'viewer@demo.test', 'viewer', null],
+// [nama, email, peran, kode divisi, level (label kartu), ringkasan]
+export const AKUN = [
+  ['Super Admin Demo', 'sistem@demo.test', 'admin_sistem', null, 'Super Admin', 'Kelola pengguna, peran, divisi, dan kesehatan sistem. Tidak dapat melihat isi kontrak.'],
+  ['Legal Demo', 'legal@demo.test', 'legal', null, 'Legal', 'Kelola semua kontrak di semua unit, setujui tahap Legal, catat perpanjangan, atur reminder.'],
+  ['Legal Kedua Demo', 'legal2@demo.test', 'legal', null, 'Legal', 'Rekan Legal untuk mencoba aturan empat mata (penyetuju tidak boleh pembuat kontrak).'],
+  ['HQ / TEN Demo', 'direksi@demo.test', 'direksi', null, 'HQ / TEN', 'Kantor pusat: memantau semua unit, melihat nilai, menyetujui tahap Direksi, memutuskan kontrak.'],
+  ['Finance Demo', 'finance@demo.test', 'finance', null, 'Finance', 'Tinjau kontrak bernilai, lihat nilai kontrak, setujui tahap Finance.'],
+  ['PIC Tgn & Tlc Demo', 'pic.ttl@demo.test', 'pic', 'TTL', 'Unit Tgn & Tlc', 'Mengurus kontrak unit Tgn & Tlc saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
+  ['PIC Upitra Demo', 'pic.upt@demo.test', 'pic', 'UPT', 'Unit Upitra', 'Mengurus kontrak unit Upitra saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
+  ['PIC Cristore Demo', 'pic.crs@demo.test', 'pic', 'CRS', 'Unit Cristore', 'Mengurus kontrak unit Cristore saja: input, ubah, ajukan ke Legal, tambah dokumen.'],
+  ['Auditor Demo', 'viewer@demo.test', 'viewer', null, 'Auditor', 'Baca saja: pantau status dan masa berlaku tanpa nilai dan dokumen.'],
 ];
+const AKUN_LAMA = ['pic@demo.test'];
 
 // [judul, jenis, pihak, divisi, pic, sisaHari, notice, auto-renew, status, nilai, jenis kontrak, risiko]
 const DATA = [
-  ['Kerja sama praktik kerja siswa', 'MoU', 'SMK Nusa Cendana (fiktif)', 'AKD', 'Dewi Larasati', 12, 30, false, 'aktif', null, 'non_finansial', 'rendah'],
-  ['Pelatihan guru semester genap', 'PKS', 'Yayasan Pelita Ilmu (fiktif)', 'AKD', 'Bimo Anggara', 45, 60, true, 'aktif', '85000000', 'pendapatan', 'sedang'],
-  ['Kemitraan magang industri', 'MoU', 'PT Karya Samudra Fiktif', 'BD', 'Rani Puspita', 75, 30, false, 'negosiasi_perpanjangan', null, 'non_finansial', 'sedang'],
-  ['Pengadaan platform belajar', 'kontrak_vendor', 'CV Digita Mandiri (fiktif)', 'OPS', 'Galih Prakoso', 130, 60, false, 'aktif', '240000000', 'pengeluaran', 'tinggi'],
-  ['Perjanjian kerahasiaan program beasiswa', 'NDA', 'Institut Cakrawala Fiktif', 'LGL', 'Sinta Maharani', 230, 0, false, 'aktif', null, 'non_finansial', 'rendah'],
-  ['Kerja sama akreditasi program', 'MoU', 'Dinas Pendidikan Kota Fiktif', 'BD', 'Rani Puspita', 400, 90, false, 'aktif', null, 'non_finansial', 'sedang'],
-  ['Layanan katering asrama', 'SPK', 'PT Boga Sejahtera Fiktif', 'OPS', 'Galih Prakoso', -20, 0, false, 'berakhir', '36000000', 'pengeluaran', 'rendah'],
-  ['Kerja sama riset bersama', 'MoU', 'Universitas Fiktif Nusantara', 'AKD', 'Dewi Larasati', -3, 30, true, 'aktif', null, 'non_finansial', 'sedang'],
-  ['Penyusunan kurikulum vokasi', 'PKS', 'SMK Bina Mandiri (fiktif)', 'AKD', 'Bimo Anggara', null, 0, false, 'review_legal', '120000000', 'pendapatan', 'sedang'],
-  ['Rencana kolaborasi pelatihan', 'MoU', 'Lembaga Mitra Fiktif', 'BD', 'Rani Puspita', null, 0, false, 'draft', null, 'non_finansial', 'rendah'],
-  ['Lisensi aplikasi manajemen sekolah', 'kontrak_vendor', 'PT Aksara Digital Fiktif', 'OPS', 'Galih Prakoso', null, 0, false, 'review_finance', '180000000', 'pengeluaran', 'sedang'],
-  ['Kemitraan beasiswa nasional', 'MoU', 'Yayasan Cahaya Bangsa Fiktif', 'BD', 'Rani Puspita', null, 0, false, 'persetujuan_direksi', '950000000', 'pendapatan', 'tinggi'],
-  ['Kerja sama pusat pelatihan guru', 'PKS', 'SMK Garuda Fiktif', 'AKD', 'Dewi Larasati', null, 0, false, 'menunggu_ttd', '60000000', 'pendapatan', 'rendah'],
+  ['Kerja sama praktik kerja siswa', 'MoU', 'SMK Nusa Cendana (fiktif)', 'TTL', 'Dewi Larasati', 12, 30, false, 'aktif', null, 'non_finansial', 'rendah'],
+  ['Pelatihan guru semester genap', 'PKS', 'Yayasan Pelita Ilmu (fiktif)', 'TTL', 'Bimo Anggara', 45, 60, true, 'aktif', '85000000', 'pendapatan', 'sedang'],
+  ['Kemitraan magang industri', 'MoU', 'PT Karya Samudra Fiktif', 'UPT', 'Rani Puspita', 75, 30, false, 'negosiasi_perpanjangan', null, 'non_finansial', 'sedang'],
+  ['Pengadaan platform belajar', 'kontrak_vendor', 'CV Digita Mandiri (fiktif)', 'CRS', 'Galih Prakoso', 130, 60, false, 'aktif', '240000000', 'pengeluaran', 'tinggi'],
+  ['Perjanjian kerahasiaan program beasiswa', 'NDA', 'Institut Cakrawala Fiktif', 'UPT', 'Sinta Maharani', 230, 0, false, 'aktif', null, 'non_finansial', 'rendah'],
+  ['Kerja sama akreditasi program', 'MoU', 'Dinas Pendidikan Kota Fiktif', 'UPT', 'Rani Puspita', 400, 90, false, 'aktif', null, 'non_finansial', 'sedang'],
+  ['Layanan katering asrama', 'SPK', 'PT Boga Sejahtera Fiktif', 'CRS', 'Galih Prakoso', -20, 0, false, 'berakhir', '36000000', 'pengeluaran', 'rendah'],
+  ['Kerja sama riset bersama', 'MoU', 'Universitas Fiktif Nusantara', 'TTL', 'Dewi Larasati', -3, 30, true, 'aktif', null, 'non_finansial', 'sedang'],
+  ['Penyusunan kurikulum vokasi', 'PKS', 'SMK Bina Mandiri (fiktif)', 'TTL', 'Bimo Anggara', null, 0, false, 'review_legal', '120000000', 'pendapatan', 'sedang'],
+  ['Rencana kolaborasi pelatihan', 'MoU', 'Lembaga Mitra Fiktif', 'UPT', 'Rani Puspita', null, 0, false, 'draft', null, 'non_finansial', 'rendah'],
+  ['Lisensi aplikasi manajemen sekolah', 'kontrak_vendor', 'PT Aksara Digital Fiktif', 'CRS', 'Galih Prakoso', null, 0, false, 'review_finance', '180000000', 'pengeluaran', 'sedang'],
+  ['Kemitraan beasiswa nasional', 'MoU', 'Yayasan Cahaya Bangsa Fiktif', 'UPT', 'Rani Puspita', null, 0, false, 'persetujuan_direksi', '950000000', 'pendapatan', 'tinggi'],
+  ['Kerja sama pusat pelatihan guru', 'PKS', 'SMK Garuda Fiktif', 'TTL', 'Dewi Larasati', null, 0, false, 'menunggu_ttd', '60000000', 'pendapatan', 'rendah'],
 ];
 
 // Persetujuan yang sudah tercatat menurut tahap saat ini.
@@ -36,15 +40,29 @@ const SUDAH_SETUJU = {
 };
 const BELUM_ADA_DRAFT = new Set(['Rencana kolaborasi pelatihan']);
 
-/** Isi data demo. `t` = db atau transaksi. Idempoten terhadap akun: lewati bila akun demo sudah ada. */
-export async function isiDemo(t) {
-  if (await t.satu('SELECT 1 FROM pengguna WHERE demo LIMIT 1')) return false;
-  const divisi = Object.fromEntries((await t.q('SELECT kode, id FROM divisi')).map((d) => [d.kode, d.id]));
+const MARKER = 'Data contoh fiktif untuk demonstrasi.';
+
+/** Samakan akun demo dengan daftar di atas (idempoten): tambah yang baru, perbarui nama/peran/unit, nonaktifkan yang lama. */
+async function selaraskanAkun(t, divisi) {
   const pengguna = {};
   for (const [nama, email, peran, kd] of AKUN) {
     // Akun demo hanya bisa dimasuki lewat tombol demo: kata sandinya acak dan tidak pernah ditampilkan.
-    pengguna[email] = (await t.satu('INSERT INTO pengguna (nama, email, sandi_hash, peran, divisi_id, demo) VALUES ($1,$2,$3,$4,$5,true) ON CONFLICT (email) DO NOTHING RETURNING id',
-      [nama, email, hashSandi(randomBytes(24).toString('hex')), peran, kd ? divisi[kd] : null]))?.id;
+    pengguna[email] = (await t.satu(`INSERT INTO pengguna (nama, email, sandi_hash, peran, divisi_id, demo) VALUES ($1,$2,$3,$4,$5,true)
+      ON CONFLICT (email) DO UPDATE SET nama = $1, peran = $4, divisi_id = $5, aktif = true WHERE pengguna.demo RETURNING id`,
+    [nama, email, hashSandi(randomBytes(24).toString('hex')), peran, kd ? divisi[kd] : null]))?.id;
+  }
+  await t.jalankan('UPDATE pengguna SET aktif = false WHERE demo AND email = ANY($1)', [AKUN_LAMA]);
+  return pengguna;
+}
+
+/** Isi data demo. `t` = db atau transaksi. Akun selalu diselaraskan; kontrak contoh hanya diisi sekali. Mengembalikan true bila kontrak baru diisi. */
+export async function isiDemo(t) {
+  const divisi = Object.fromEntries((await t.q('SELECT kode, id FROM divisi')).map((d) => [d.kode, d.id]));
+  const pengguna = await selaraskanAkun(t, divisi);
+  if (await t.satu('SELECT 1 FROM kontrak WHERE ruang_lingkup = $1 LIMIT 1', [MARKER])) {
+    // Data lama: pindahkan kontrak contoh ke unit yang sesuai agar akun PIC tiap unit punya isi.
+    for (const [judul, , , kd] of DATA) await t.jalankan('UPDATE kontrak SET divisi_id = $1 WHERE judul = $2 AND ruang_lingkup = $3', [divisi[kd], judul, MARKER]);
+    return false;
   }
   const penyetuju = { legal: pengguna['legal@demo.test'], finance: pengguna['finance@demo.test'], direksi: pengguna['direksi@demo.test'] };
   const h = hariIni();

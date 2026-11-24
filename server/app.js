@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { cocokSandi, hashSandi, HASH_PALSU } from './sandi.js';
 import { boleh, izinPeran, LABEL_PERAN, RINGKAS_PERAN, PERAN } from './akses.js';
+import { AKUN } from './demo.js';
 import { PgStore } from './sesi.js';
 import { Galat, tolak } from './umum.js';
 import { domainDiizinkan } from './data.js';
@@ -71,9 +72,12 @@ export function buatApp(db, { kirimEmail = null } = {}) {
   api.get('/demo/akun', async (_req, res, next) => {
     try {
       if (!demoAktif()) return res.json({ aktif: false, akun: [] });
-      const baris = await db.q('SELECT id, nama, peran FROM pengguna WHERE demo AND aktif');
-      const urut = baris.sort((a, b) => PERAN.indexOf(a.peran) - PERAN.indexOf(b.peran) || a.id - b.id);
-      res.json({ aktif: true, akun: urut.map((p) => ({ id: p.id, nama: p.nama, peran: p.peran, peran_label: LABEL_PERAN[p.peran], ringkas: RINGKAS_PERAN[p.peran] })) });
+      const baris = await db.q('SELECT id, nama, email, peran FROM pengguna WHERE demo AND aktif');
+      const urut = (e) => { const i = AKUN.findIndex((x) => x[1] === e); return i < 0 ? 999 : i; };
+      const info = (e) => AKUN.find((x) => x[1] === e);
+      res.json({ aktif: true, akun: baris.sort((x, y) => urut(x.email) - urut(y.email) || x.id - y.id).map((p) => ({
+        id: p.id, nama: p.nama, peran: p.peran, peran_label: info(p.email)?.[4] ?? LABEL_PERAN[p.peran], ringkas: info(p.email)?.[5] ?? RINGKAS_PERAN[p.peran],
+      })) });
     } catch (e) { next(e); }
   });
 

@@ -231,3 +231,13 @@ input[type="checkbox"] { width: 22px; height: 22px; min-height: 0; }
 .peran-label { color: #8fd3f5; font-weight: 600; }
 .sandi-kotak { border-color: var(--cyan); background: var(--cyan-soft); margin-bottom: 14px; }
 .sandi-kotak code { font-family: ui-monospace, Consolas, monospace; font-size: 1.15rem; font-weight: 700; padding: 8px 14px; background: var(--surface); border: 1px dashed var(--navy); border-radius: 8px; user-select: all; }
+
+/* Daftar kontrak: filter tahap alur dan menu ubah status */
+.alur-chip { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.chip-tahap { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 0.875rem; cursor: pointer; min-height: 36px; }
+.chip-tahap:hover { border-color: var(--cyan); }
+.chip-tahap.on { background: var(--navy); color: #fff; border-color: transparent; }
+.pilih-status { min-height: 36px; width: 160px; min-width: 160px; }
+.dialog-status { border: 1px solid var(--border); border-radius: var(--r); padding: 20px; width: min(440px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
+.dialog-status::backdrop { background: rgb(5 5 30 / 0.55); }
+.dialog-status textarea { width: 100%; min-height: 90px; }

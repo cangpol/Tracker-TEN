@@ -1,6 +1,50 @@
-import { useEffect, useState } from 'react';
-import { get } from '../api.js';
+import { useEffect, useRef, useState } from 'react';
+import { get, kirim } from '../api.js';
 import { Ikon, Tingkat, StatusLencana, Tanda, Status, useData, useSaya, bisa, tanggal, sisaTeks, uang, STATUS_LABEL } from '../ui.jsx';
+
+const BUTUH_ALASAN = ['draft', 'review_legal', 'dibatalkan', 'diputus'];
+const ALUR = ['draft', 'review_legal', 'review_finance', 'persetujuan_direksi', 'menunggu_ttd', 'aktif'];
+
+/** Menu ubah status per baris. Isinya hanya tahap yang sah menurut server (aturan sama dengan halaman detail). */
+function UbahStatus({ k, selesai }) {
+  const [ke, setKe] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [proses, setProses] = useState(false);
+  const [galat, setGalat] = useState('');
+  const dlg = useRef(null);
+  const pilihan = k.transisi_tersedia ?? [];
+  const wajib = (BUTUH_ALASAN.includes(ke) && k.status !== 'draft') || ke === 'dibatalkan';
+  useEffect(() => { if (ke) dlg.current?.showModal(); }, [ke]);
+  if (!pilihan.length) return <span className="sub">—</span>;
+  const tutup = () => { dlg.current?.close(); setKe(''); setCatatan(''); setGalat(''); };
+  const kirimUbah = async (e) => {
+    e.preventDefault(); setProses(true); setGalat('');
+    try { await kirim('POST', `/kontrak/${k.id}/transisi`, { ke, catatan }); tutup(); selesai(); }
+    catch (x) { setGalat(x.message); } finally { setProses(false); }
+  };
+  return (
+    <>
+      <select className="pilih-status" aria-label={`Ubah status ${k.judul}`} value="" onChange={(e) => setKe(e.target.value)}>
+        <option value="">Ubah status…</option>
+        {pilihan.map((x) => <option key={x} value={x}>{STATUS_LABEL[x] ?? x}</option>)}
+      </select>
+      <dialog ref={dlg} className="dialog-status" onClose={() => { setKe(''); setCatatan(''); setGalat(''); }}>
+        <form onSubmit={kirimUbah}>
+          <h2>Ubah status</h2>
+          <p><strong>{k.judul}</strong><br />{STATUS_LABEL[k.status]} → {STATUS_LABEL[ke] ?? ke}</p>
+          <label>Catatan {wajib ? '(wajib)' : '(opsional)'}
+            <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} maxLength={5000} required={wajib} />
+          </label>
+          {galat && <p className="galat" role="alert">{galat}</p>}
+          <div className="baris" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+            <button type="button" className="btn" onClick={tutup}>Batal</button>
+            <button className="btn utama" disabled={proses}>{proses ? 'Menyimpan…' : 'Simpan'}</button>
+          </div>
+        </form>
+      </dialog>
+    </>
+  );
+}
 
 const parse = (rute) => Object.fromEntries(new URLSearchParams(rute.split('?')[1] || ''));
 
@@ -59,6 +103,15 @@ export default function Daftar({ rute }) {
         </label>
       </div>
 
+      <div className="alur-chip" role="group" aria-label="Saring menurut tahap alur">
+        <button className={`chip-tahap ${f.status === '' ? 'on' : ''}`} onClick={() => ubah('status')({ target: { value: '' } })}>Semua tahap</button>
+        {ALUR.map((x, i) => (
+          <button key={x} className={`chip-tahap ${f.status === x ? 'on' : ''}`} aria-pressed={f.status === x} onClick={() => ubah('status')({ target: { value: f.status === x ? '' : x } })}>
+            <span aria-hidden="true">{i + 1}.</span> {STATUS_LABEL[x]}
+          </button>
+        ))}
+      </div>
+
       {(f.rentang || f.perlu) && (
         <div className="baris" style={{ marginBottom: 12 }}>
           <span className="lencana aksen">Filter dari dashboard: {f.rentang ? `rentang ${f.rentang === 'lewat' ? 'sudah lewat' : f.rentang === 'aman' ? 'aman' : `≤ ${f.rentang} hari`}` : f.perlu === 'notice' ? 'notice terlewat' : 'konfirmasi auto-renew'}</span>
@@ -73,7 +126,7 @@ export default function Daftar({ rute }) {
         ) : (
           <div className="tabel-bungkus">
             <table>
-              <thead><tr><th>Kontrak</th><th>Divisi / PIC</th><th>Status</th><th>Berakhir</th><th>Sisa</th><th>Tingkat</th>{adaNilai && <th>Nilai</th>}</tr></thead>
+              <thead><tr><th>Kontrak</th><th>Divisi / PIC</th><th>Status</th><th>Berakhir</th><th>Sisa</th><th>Tingkat</th><th>Ubah status</th>{adaNilai && <th>Nilai</th>}</tr></thead>
               <tbody>
                 {d.data.map((k) => (
                   <tr key={k.id}>
@@ -87,6 +140,7 @@ export default function Daftar({ rute }) {
                     <td>{tanggal(k.tanggal_berakhir)}</td>
                     <td>{sisaTeks(k.sisa_hari)}</td>
                     <td><Tingkat tingkat={k.tingkat} /></td>
+                    <td><UbahStatus k={k} selesai={s.muatUlang} /></td>
                     {adaNilai && <td style={{ whiteSpace: 'nowrap' }}>{k.nilai_kontrak ? uang(k.nilai_kontrak, k.mata_uang) : '—'}</td>}
                   </tr>
                 ))}
