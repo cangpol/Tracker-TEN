@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     console.error('start gagal:', e.message);
     res.statusCode = 500;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ kode: 'galat', pesan: 'Terjadi kesalahan pada server.' }));
+    const konfig = /belum diatur|wajib diisi/.test(e.message); // pesan konfigurasi tidak memuat rahasia
+    res.end(JSON.stringify({ kode: 'galat', pesan: konfig ? e.message : 'Terjadi kesalahan pada server.' }));
   }
 }
