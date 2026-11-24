@@ -19,7 +19,7 @@ const bungkus = (jalankan) => ({
  * Pool PostgreSQL. Di Vercel gunakan URL "pooled" (Neon/Supabase) dan pool kecil per instance.
  * `skema` hanya untuk tes (isolasi per berkas tes).
  */
-export function bukaDb({ url = process.env.DATABASE_URL, skema } = {}) {
+export function bukaDb({ url = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL, skema } = {}) {
   if (!url) throw new Error('DATABASE_URL belum diatur.');
   const pool = new Pool({
     connectionString: url,
