@@ -44,6 +44,21 @@ export default function AdminDashboard() {
             <Kartu n={d.keamanan_24_jam.akses_ditolak} l="Akses ditolak (24 jam)" href="#/audit" peringatan />
           </div>
 
+          <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-unit">
+            <h2 id="h-unit">Akun PIC per unit</h2>
+            <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>Unit tanpa PIC aktif tidak punya penerima notifikasi dan tidak bisa mengajukan kontrak sendiri.</p>
+            <div className="grid-3">
+              {d.per_unit.map((u) => (
+                <div key={u.id} className="kartu angka" style={u.pic_aktif === 0 ? { borderColor: 'var(--oranye-fg)' } : undefined}>
+                  <span className="n">{u.pic_aktif}</span>
+                  <span className="l">{u.nama}</span>
+                  {u.pic_aktif === 0 && <span className="lencana oranye"><Ikon n="waspada" />Belum ada PIC aktif</span>}
+                </div>
+              ))}
+            </div>
+            <p style={{ margin: '12px 0 0' }}><a href="#/pengguna">Kelola akun PIC →</a></p>
+          </section>
+
           <div className="tiga">
             <section className="kartu" aria-labelledby="h-peran">
               <h2 id="h-peran">Pengguna aktif per peran</h2>

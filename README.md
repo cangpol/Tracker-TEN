@@ -53,7 +53,7 @@ Aturan di satu modul: [server/akses.js](server/akses.js). Server yang memutuskan
 
 | Peran | Ringkasan |
 |---|---|
-| Admin Sistem | Pengguna, peran, divisi, audit log keamanan, kesehatan sistem. **Tidak** menjangkau data kontrak |
+| Super Admin (Admin Sistem) | Pengguna, peran, divisi, audit log keamanan, kesehatan sistem. **Tidak** menjangkau data kontrak |
 | Legal | Semua kontrak, nilai, perpanjangan, tahap Legal, aturan reminder dan ambang, audit log kontrak |
 | PIC Divisi | Kontrak divisinya sendiri (sebelum Menunggu TTD), dokumen, tanpa nilai |
 | Finance | Baca, lihat nilai, tahap Finance, dokumen final/adendum kontrak bernilai |

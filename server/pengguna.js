@@ -183,6 +183,9 @@ export function pasangPengguna(api, { db, catat, izin }) {
           belum_pernah_login: await n('SELECT count(*)::int AS n FROM pengguna WHERE aktif AND terakhir_login IS NULL AND NOT demo'),
           per_peran: await Promise.all(PERAN.map(async (p) => ({ peran: p, label: LABEL_PERAN[p], jumlah: await n('SELECT count(*)::int AS n FROM pengguna WHERE aktif AND peran = $1', p) }))),
         },
+        // Hanya jumlah akun per unit (tanpa data kontrak): unit tanpa PIC aktif tidak punya penerima notifikasi.
+        per_unit: await db.q(`SELECT d.id, d.kode, d.nama, count(p.id)::int AS pic_aktif FROM divisi d
+          LEFT JOIN pengguna p ON p.divisi_id = d.id AND p.peran = 'pic' AND p.aktif WHERE d.aktif GROUP BY d.id ORDER BY d.nama`),
         permintaan_peran_menunggu: await n("SELECT count(*)::int AS n FROM permintaan_peran WHERE status = 'menunggu'"),
         keamanan_24_jam: {
           login_berhasil: await n("SELECT count(*)::int AS n FROM audit_log WHERE aksi IN ('login','login_demo') AND waktu >= $1", sejak),

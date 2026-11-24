@@ -38,7 +38,7 @@ const PERAN = [
   ['pic', 'PIC Unit', 'Input dan ubah kontrak divisinya sendiri, ajukan ke Legal, tambah dokumen.'],
   ['finance', 'Finance', 'Tinjau kontrak bernilai, lihat nilai kontrak, setujui tahap Finance.'],
   ['direksi', 'HQ / TEN (Direksi)', 'Pantau seluruh kontrak, setujui tahap Direksi, putuskan kontrak.'],
-  ['admin_sistem', 'Admin Sistem', 'Kelola pengguna, peran, divisi, dan kesehatan sistem. Tidak melihat isi kontrak.'],
+  ['admin_sistem', 'Super Admin (Admin Sistem)', 'Kelola pengguna, peran, divisi, dan kesehatan sistem. Tidak melihat isi kontrak.'],
   ['viewer', 'Auditor (Viewer)', 'Baca saja: pantau status dan masa berlaku tanpa nilai dan dokumen.'],
 ];
 

@@ -146,6 +146,8 @@ test('dashboard Admin Sistem: kesehatan sistem tanpa isi kontrak', async () => {
   assert.equal(status, 200);
   assert.ok(data.pengguna.aktif >= 8);
   assert.equal(data.pengguna.per_peran.length, 6);
+  assert.ok(Array.isArray(data.per_unit) && data.per_unit.length >= 1 && data.per_unit.every((x) => Number.isInteger(x.pic_aktif)));
+  assert.ok(data.per_unit.some((x) => x.kode === 'AKD' && x.pic_aktif >= 1), 'unit dengan PIC aktif terhitung');
   assert.ok(data.keamanan_24_jam.login_berhasil >= 1);
   assert.ok(data.keamanan_24_jam.akses_ditolak >= 1);
   assert.equal(data.sistem.database, 'PostgreSQL');
