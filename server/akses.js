@@ -5,7 +5,7 @@ export const PERAN = ['admin_sistem', 'legal', 'pic', 'finance', 'direksi', 'vie
 export const ISTIMEWA = ['admin_sistem', 'legal', 'finance', 'direksi'];
 
 export const LABEL_PERAN = {
-  admin_sistem: 'Admin Sistem', legal: 'Legal', pic: 'PIC Divisi', finance: 'Finance', direksi: 'Direksi', viewer: 'Viewer / Auditor',
+  admin_sistem: 'Admin Sistem', legal: 'Legal', pic: 'PIC Unit', finance: 'Finance', direksi: 'HQ / TEN (Direksi)', viewer: 'Viewer / Auditor',
 };
 
 const IZIN = {
