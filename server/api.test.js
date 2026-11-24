@@ -227,6 +227,21 @@ test('dashboard: nilai aktif dikelompokkan per mata uang dan hanya untuk peran b
   assert.equal((await viewer('GET', '/dashboard')).data.nilai_aktif, undefined);
 });
 
+test('panel Finance: antrian review dengan nilai, nilai dalam proses, hanya untuk Finance', async () => {
+  const id = await sampaiReviewLegal({ judul: 'Panel Finance uji', nilai_kontrak: '7500000.50', mata_uang: 'IDR', jenis_kontrak: 'pengeluaran' });
+  assert.equal((await T(legal2, id, 'review_finance')).status, 200);
+  const p = (await finance('GET', '/dashboard')).data.finance;
+  const baris = p.antrian.find((x) => x.id === id);
+  assert.ok(baris && baris.nilai_kontrak === '7500000.50' && baris.mata_uang === 'IDR' && baris.menunggu_hari === 0);
+  assert.ok(p.dalam_proses.some((x) => x.status === 'review_finance' && x.mata_uang === 'IDR' && Number(x.total) >= 7500000.5));
+  assert.ok(Array.isArray(p.berakhir_90));
+  for (const [nama, k] of [['legal', legal], ['direksi', direksi], ['pic', pic], ['viewer', viewer]]) {
+    assert.equal((await k('GET', '/dashboard')).data.finance, undefined, nama);
+  }
+  assert.equal((await T(finance, id, 'menunggu_ttd')).status, 200);
+  assert.ok(!(await finance('GET', '/dashboard')).data.finance.antrian.some((x) => x.id === id), 'keluar dari antrian setelah diputuskan');
+});
+
 test('antrian "menunggu Anda" untuk penyetuju tidak menghitung kontrak buatannya sendiri', async () => {
   const antrian = async (k) => (await k('GET', '/dashboard')).data.kartu.menunggu_anda;
   const [a0, b0] = [await antrian(legal), await antrian(legal2)];

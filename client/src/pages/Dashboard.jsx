@@ -13,6 +13,63 @@ function Kartu({ n, l, href, peringatan }) {
   );
 }
 
+const RISIKO_LABEL = { tinggi: 'Risiko tinggi', sedang: 'Risiko sedang', rendah: 'Risiko rendah' };
+
+/** Panel khusus Finance: antrian review dengan nilai, nilai dalam proses, nilai yang segera berakhir. Nilai per mata uang, tidak dijumlah lintas mata uang. */
+function PanelFinance({ f }) {
+  const Blok = ({ judul, children }) => (
+    <div className="kartu" style={{ display: 'flex', flexDirection: 'column', gap: 10, alignContent: 'start' }}>
+      <span style={{ fontWeight: 600, color: 'var(--muted)', fontSize: '0.9rem' }}>{judul}</span>
+      {children}
+    </div>
+  );
+  const Butir = ({ x }) => (
+    <div>
+      <div style={{ fontFamily: 'Lexend, sans-serif', fontWeight: 600, fontSize: '1.2rem', whiteSpace: 'nowrap' }}>{uang(x.total, x.mata_uang)}</div>
+      <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{JENIS_KONTRAK_LABEL[x.jenis_kontrak]} · {x.jumlah} kontrak{x.status ? ` · ${STATUS_LABEL[x.status]}` : ''}</div>
+    </div>
+  );
+  const Kosong = ({ teks }) => <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{teks}</span>;
+  return (
+    <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-fin">
+      <h2 id="h-fin">Panel Finance</h2>
+      <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>Kontrak bernilai yang menunggu tinjauan Finance, dan nilai yang masih dalam proses. Dikelompokkan per mata uang.</p>
+      <div className="grid-kartu" style={{ marginBottom: 16, alignItems: 'stretch' }}>
+        <Blok judul="Menunggu review Finance">
+          <div style={{ fontFamily: 'Lexend, sans-serif', fontWeight: 700, fontSize: '2rem', lineHeight: 1 }}>{f.antrian.length}</div>
+          <Kosong teks={f.antrian.length ? 'kontrak bernilai menunggu tinjauan Anda' : 'Tidak ada antrian.'} />
+        </Blok>
+        <Blok judul="Nilai dalam proses">
+          {f.dalam_proses.length === 0 ? <Kosong teks="Tidak ada kontrak bernilai dalam proses." /> : f.dalam_proses.map((x, i) => <Butir key={i} x={x} />)}
+        </Blok>
+        <Blok judul="Nilai berakhir ≤ 90 hari">
+          {f.berakhir_90.length === 0 ? <Kosong teks="Tidak ada kontrak bernilai yang segera berakhir." /> : f.berakhir_90.map((x, i) => <Butir key={i} x={x} />)}
+        </Blok>
+      </div>
+      <h3 style={{ margin: '0 0 8px' }}>Antrian review Finance</h3>
+      {f.antrian.length === 0 ? <p className="kosong">Tidak ada kontrak yang menunggu review Finance.</p> : (
+        <div className="tabel-bungkus">
+          <table>
+            <thead><tr><th>Kontrak</th><th>Unit</th><th>Nilai</th><th>Risiko</th><th>Menunggu</th><th><span className="sr">Aksi</span></th></tr></thead>
+            <tbody>
+              {f.antrian.map((k) => (
+                <tr key={k.id}>
+                  <td><a className="judul" href={`#/kontrak/${k.id}`}>{k.judul}</a><div className="sub">{k.counterparty_nama} · {JENIS_KONTRAK_LABEL[k.jenis_kontrak]}</div></td>
+                  <td>{k.divisi_nama}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{uang(k.nilai_kontrak, k.mata_uang)}</td>
+                  <td>{RISIKO_LABEL[k.tingkat_risiko] ?? k.tingkat_risiko}</td>
+                  <td>{k.menunggu_hari === 0 ? 'Hari ini' : `${k.menunggu_hari} hari`}</td>
+                  <td><a className="btn kecil utama" href={`#/kontrak/${k.id}`}>Tinjau</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const saya = useSaya();
   const s = useData(() => get('/dashboard'), []);
@@ -69,6 +126,8 @@ export default function Dashboard() {
               </div>
             </section>
           )}
+
+          {d.finance && <PanelFinance f={d.finance} />}
 
           <section className="kartu" style={{ marginBottom: 20 }} aria-labelledby="h-radar">
             <h2 id="h-radar">Radar masa berlaku</h2>

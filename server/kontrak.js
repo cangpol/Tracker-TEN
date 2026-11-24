@@ -98,6 +98,25 @@ const csvSel = (v) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+const UANG_DALAM_PROSES = "('review_finance','persetujuan_direksi','menunggu_ttd')";
+
+async function panelFinance(db, semua, hari) {
+  const masuk = Object.fromEntries((await db.q("SELECT kontrak_id, (now() AT TIME ZONE 'Asia/Jakarta')::date - (MAX(waktu) AT TIME ZONE 'Asia/Jakarta')::date AS hari FROM riwayat_status WHERE status_baru = 'review_finance' GROUP BY 1"))
+    .map((r) => [r.kontrak_id, r.hari]));
+  const antrian = semua.filter((k) => k.status === 'review_finance' && Number(k.nilai_kontrak) > 0)
+    .map((k) => ({ id: k.id, judul: k.judul, divisi_nama: k.divisi_nama, counterparty_nama: k.counterparty_nama, jenis_kontrak: k.jenis_kontrak,
+      tingkat_risiko: k.tingkat_risiko, nilai_kontrak: k.nilai_kontrak, mata_uang: k.mata_uang, menunggu_hari: masuk[k.id] ?? 0 }))
+    .sort((a, b) => b.menunggu_hari - a.menunggu_hari);
+  return {
+    antrian,
+    dalam_proses: await db.q(`SELECT status, mata_uang, jenis_kontrak, SUM(nilai_kontrak)::text AS total, count(*)::int AS jumlah FROM kontrak
+      WHERE status IN ${UANG_DALAM_PROSES} AND diarsipkan_pada IS NULL AND nilai_kontrak > 0 GROUP BY 1, 2, 3 ORDER BY 1, 2, 3`),
+    berakhir_90: await db.q(`SELECT mata_uang, jenis_kontrak, SUM(nilai_kontrak)::text AS total, count(*)::int AS jumlah FROM kontrak
+      WHERE status IN ('aktif','negosiasi_perpanjangan') AND diarsipkan_pada IS NULL AND nilai_kontrak > 0 AND tanggal_berakhir <= $1::date + 90
+      GROUP BY 1, 2 ORDER BY 1, 2`, [hari]),
+  };
+}
+
 export function pasangKontrak(api, { db, catat, izin }) {
   const ambilKontrak = async (id, user, q = db) => {
     const n = Number(id);
@@ -354,6 +373,8 @@ export function pasangKontrak(api, { db, catat, izin }) {
           ? await db.q(`SELECT mata_uang, jenis_kontrak, SUM(nilai_kontrak)::text AS total, count(*)::int AS jumlah FROM kontrak
               WHERE status = 'aktif' AND diarsipkan_pada IS NULL AND nilai_kontrak IS NOT NULL GROUP BY 1, 2 ORDER BY 1, 2`)
           : undefined,
+        // Panel khusus Finance: antrian review beserta nilainya, nilai yang masih dalam proses, dan nilai yang segera berakhir (numeric dijumlah di SQL).
+        finance: u.peran === 'finance' ? await panelFinance(db, semua, hari) : undefined,
         prioritas: dipantau
           .filter((k) => k.sisa_hari <= amb.kuning || k.notice_terlewat || k.perlu_konfirmasi_auto_renew)
           .sort((a, b) => urgensi(a) - urgensi(b)).slice(0, 15).map((k) => saring(u, k)),
