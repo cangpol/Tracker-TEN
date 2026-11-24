@@ -62,8 +62,8 @@ export function buatApp(db, { kirimEmail = null } = {}) {
       [req.pengguna?.id ?? req.session?.penggunaId ?? null, req.ip, aksi, tabel, id, ringkasan]);
 
   const profil = (p) => ({
-    id: p.id, nama: p.nama, email: demoAktif() && p.demo ? undefined : p.email, peran: p.peran, peran_label: LABEL_PERAN[p.peran],
-    divisi_id: p.divisi_id, wajib_ganti: !!p.wajib_ganti, demo: !!p.demo, izin: izinPeran(p.peran),
+    id: p.id, nama: p.nama, email: demoAktif() && p.demo ? undefined : p.email, peran: p.peran, peran_label: p.peran === 'pic' && p.divisi_nama ? `PIC · ${p.divisi_nama}` : LABEL_PERAN[p.peran],
+    divisi_id: p.divisi_id, divisi_nama: p.divisi_nama ?? null, wajib_ganti: !!p.wajib_ganti, demo: !!p.demo, izin: izinPeran(p.peran),
   });
 
   const api = express.Router();
@@ -85,7 +85,7 @@ export function buatApp(db, { kirimEmail = null } = {}) {
   api.post('/auth/demo', async (req, res, next) => {
     try {
       if (!demoAktif()) return res.status(404).json({ kode: 'tidak_ditemukan', pesan: 'Endpoint tidak ditemukan.' });
-      const p = await db.satu('SELECT * FROM pengguna WHERE id = $1 AND demo AND aktif', [Number(req.body?.id) || 0]);
+      const p = await db.satu('SELECT p.*, d.nama AS divisi_nama FROM pengguna p LEFT JOIN divisi d ON d.id = p.divisi_id WHERE p.id = $1 AND p.demo AND p.aktif', [Number(req.body?.id) || 0]);
       if (!p) return res.status(404).json({ kode: 'tidak_ditemukan', pesan: 'Akun demo tidak ditemukan.' });
       await regenerasi(req);
       req.session.penggunaId = p.id;
@@ -101,7 +101,7 @@ export function buatApp(db, { kirimEmail = null } = {}) {
       if (gagal >= BATAS_LOGIN_GAGAL) return res.status(429).json({ kode: 'terlalu_banyak', pesan: 'Terlalu banyak percobaan. Coba lagi nanti.' });
       const email = String(req.body?.email ?? '').trim().toLowerCase();
       const sandi = String(req.body?.sandi ?? '');
-      const p = await db.satu('SELECT * FROM pengguna WHERE email = $1 AND aktif', [email]);
+      const p = await db.satu('SELECT p.*, d.nama AS divisi_nama FROM pengguna p LEFT JOIN divisi d ON d.id = p.divisi_id WHERE p.email = $1 AND p.aktif', [email]);
       // Hash palsu agar waktu respons sama bila email tidak ada (cegah enumerasi akun).
       const ok = cocokSandi(sandi, p ? p.sandi_hash : HASH_PALSU) && p;
       if (!ok) {
@@ -127,7 +127,7 @@ export function buatApp(db, { kirimEmail = null } = {}) {
   // Pengguna dimuat dari database tiap permintaan: akun yang dinonaktifkan atau diubah perannya langsung berlaku.
   api.use(async (req, res, next) => {
     try {
-      const p = req.session.penggunaId && await db.satu('SELECT * FROM pengguna WHERE id = $1', [req.session.penggunaId]);
+      const p = req.session.penggunaId && await db.satu('SELECT p.*, d.nama AS divisi_nama FROM pengguna p LEFT JOIN divisi d ON d.id = p.divisi_id WHERE p.id = $1', [req.session.penggunaId]);
       if (!p || !p.aktif) {
         const galat = { kode: 'belum_login', pesan: 'Silakan login terlebih dahulu.' };
         return req.session.penggunaId ? req.session.destroy(() => res.status(401).json(galat)) : res.status(401).json(galat);
