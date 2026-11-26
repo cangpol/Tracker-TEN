@@ -18,6 +18,9 @@ Konteks proyek untuk Claude. Baca file ini sebelum mengerjakan apa pun di reposi
 | `ATURAN.md` | Aturan pengembangan, aturan bisnis yang tidak boleh dilanggar, Definition of Done |
 | `SECURITY.md` | Keamanan: autentikasi, otorisasi, unggahan, kripto, audit log, backup, penggunaan AI, checklist peluncuran |
 | `PROMPT.md` | Prompt kerja per tahap dan prompt tinjauan keamanan |
+| `docs/sop/ATURAN_ALUR_SOP.md` | Aturan alur sesuai SOP Partnership (usulan sampai TTD): peran, status, tabel transisi, SLA, data usulan. Menggantikan bagian 5 di bawah |
+| `docs/sop/RENCANA_PERBAIKAN_SOP.md` | Rencana perbaikan bertahap S0–S9 dan keputusan yang dibutuhkan |
+| `docs/sop/PROMPT_PERBAIKAN_SOP.md` | Prompt kerja per tahap penyesuaian SOP |
 
 Urutan prioritas bila ada perbedaan: `SECURITY.md` > `BREAKDOWN.md` > `ATURAN.md` > `CLAUDE.md`.
 
@@ -55,6 +58,8 @@ Urutan prioritas bila ada perbedaan: `SECURITY.md` > `BREAKDOWN.md` > `ATURAN.md
 9. **Pengguna dan keamanan:** login, RBAC, audit log.
 
 ## 5. Alur Status
+
+> **Diganti oleh `docs/sop/ATURAN_ALUR_SOP.md`** untuk alur dari usulan sampai tanda tangan. Bagan di bawah adalah alur lama yang masih berjalan di kode sampai tahap S4 rencana perbaikan selesai.
 
 ```
 Draft → Review Legal → Review Finance (jika ada nilai) → Persetujuan Direksi → Menunggu TTD → Aktif
